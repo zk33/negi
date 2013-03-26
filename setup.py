@@ -17,7 +17,7 @@ setup(
     packages=find_packages(exclude=['ez_setup', 'tests', 'tests.*']),
     long_description=read('README.rst'),
     install_requires=["aaargh","jinja2"],
-    entry_points={'console_scripts': ["negi = negi:main"]},
+    entry_points={'console_scripts': ["negi = negi.main:main"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
