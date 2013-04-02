@@ -2,6 +2,7 @@
 
 import os
 import json
+import codecs
 import jinja2
 
 
@@ -42,7 +43,7 @@ class Negi(object):
 
         for file_name in files:
             #skip dot file
-            if file_name[0] is '.':
+            if file_name[0] is '.' or file_name.find('.') == -1:
                 continue
             #check page or param
             name,ext = file_name.split('.')
@@ -111,9 +112,7 @@ class Negi(object):
         output_dir = os.path.dirname(output_path)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        output_file = open(output_path,'w')
-        output_file.write(output)
-        output_file.close()
+        self._write_file(output_path,output)
         if self.verbose:
             print output_path + '\t <- ' + os.path.join(self.tmpl_root,tmpl_file)
 
@@ -159,3 +158,7 @@ class Negi(object):
             return json.load(f)
         else:
             return f.read()
+    def _write_file(self,path,content):
+        f = codecs.open(path,'w','utf-8')
+        f.write(content)
+        f.close()
