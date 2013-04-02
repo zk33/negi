@@ -53,7 +53,12 @@ class Negi(object):
             if u_score_idx is not -1:
                 page_name = name[0:u_score_idx]
                 param_name = name[u_score_idx + 1:]
-                pages[page_name][param_name] = self._read_file(current_dir,file_name)
+
+                if u_score_idx is 0:
+                    #this is base param
+                    base_params[param_name] = self._read_file(current_dir,file_name)
+                else:
+                    pages[page_name][param_name] = self._read_file(current_dir,file_name)
             else:
                 pages[name] = self._read_json(current_dir,file_name)
 
