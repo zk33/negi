@@ -10,9 +10,9 @@ class Negi(object):
 
     def __init__(self,data_dir,tmpl_dir,out_dir,verbose=False):
         self.params = {}
-        self.data_root = data_dir
-        self.tmpl_root = tmpl_dir
-        self.output_root = out_dir
+        self.data_root = os.path.normpath(data_dir)
+        self.tmpl_root = os.path.normpath(tmpl_dir)
+        self.output_root = os.path.normpath(out_dir)
         self.verbose = verbose
         self.jinja_env = jinja2.Environment(
             loader = jinja2.ChoiceLoader([
@@ -23,7 +23,7 @@ class Negi(object):
 
     def build(self):
         self.load_params()
-        self.render()
+        self.render_all()
 
     def load_params(self):
         for current_dir, dirs, files in os.walk(self.data_root):
@@ -37,9 +37,9 @@ class Negi(object):
         if '__init__.json' in files:
             base_params = self._read_json(current_dir,files.pop(files.index('__init__.json')))
 
-        if 'contents' in base_params:
-            pages = base_params['contents']
-            del base_params['contents']
+        if '_contents' in base_params:
+            pages.update( base_params['_contents'] )
+            del base_params['_contents']
 
         for file_name in files:
             #skip dot file
@@ -63,36 +63,67 @@ class Negi(object):
                 pages[name] = self._read_json(current_dir,file_name)
 
         #save param
-        parent, now = os.path.split(current_dir)
-        if parent in self.params:
-            base_params['_parent'] = self.params[parent]
-
-        base_params['_contents'] = pages
-
         path = current_dir.replace(self.data_root,'')
         if not path:
             path = '/'
+        else:
+            #if has parent, save parent params as _parent
+            parent, now = os.path.split(path)
+            if parent in self.params:
+                base_params['_parent'] = self.params[parent]
+
+        #save pages
+        base_params['_pages'] = pages
+
+        #save params as self.params['path/to/directory/from/root']
         self.params[path] = base_params
 
-        #if pages[xxxx] has 'contents', call _process_params recursively
+        #if pages[xxxx] has 'pages', call _process_params recursively
         for k,v in pages.items():
-            if 'contents' in v:
-                self._process_params( os.path.join(current_dir,k), [], v['contents'])
+            if '_contents' in v:
+                self._process_params( os.path.join(current_dir,k), [], v['_contents'])
 
-    def render(self):
-        for path, base_params in self.params.items():
-            if '_contents' in base_params:
-                for page_name, page_params in base_params['_contents'].items():
-                    page_params = self._build_params(page_params,base_params)
+    def render_all(self):
+        for output_dir, base_params in self.params.items():
+            if '_pages' in base_params:
+                for page_name, page_params in base_params['_pages'].items():
+                    #build params
+                    params = self.build_params(output_dir,page_name)
 
-                    if 'ext' in page_params:
-                        page_name = page_name + '.' + page_params['ext']
-                    else:
-                        page_name = page_name + '.html'
+                    #render
+                    file_path = os.path.join(output_dir[1:], page_name + params['_ext'])
+                    output,template_path = self._render(output_dir,page_name)
 
-                    self._render_page(path, page_name, page_params)
+                    #write file
+                    self._save_page(file_path,output)
 
-    def _build_params(self, page_params, base_params):
+                    #output to console
+                    if self.verbose:
+                        print file_path + '\t <- ' + os.path.join(self.tmpl_root,tmpl_file)
+
+    def _render(self,file_path,params): 
+        #find template
+        tmpl_file = self._find_template(file_path)
+
+        #render
+        tmpl = self.jinja_env.get_template(tmpl_file)
+        output = tmpl.render(params)
+
+        return output, tmpl_file
+
+    def _render_page(self,tmpl_file,params):
+        return tmpl.render(params)
+
+    def _save_page(self,save_path,content):
+        output_path = os.path.join(self.output_root,save_path)
+        output_dir = os.path.dirname(output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        self._write_file(output_path,content)
+
+    def _build_params(self, output_dir, page_name):
+        base_params = self.params[output_dir]
+        page_params = base_params['_pages'][page_name]
         result_params = base_params.copy()
         result_params.update(page_params)
         tmp_params = base_params.copy()
@@ -104,54 +135,33 @@ class Negi(object):
                 tmp_params = tmp_params['_parent'].copy()
             else:
                 break
+        #add utility params
+        result_params['_rel_root'] = os.path.relpath('/',output_dir)
+        if '_ext' not in result_params:
+            result_params['_ext'] = '.html'
         return result_params
 
-    def _render_page(self, path, page_name, page_params):
-        # get template file
-        tmpl_file = self._find_template(os.path.join(path[1:],page_name))
-        tmpl = self.jinja_env.get_template(tmpl_file)
-        # render
-        output = tmpl.render(page_params)
-        # write file
-        output_path = os.path.join(self.output_root, path[1:], page_name)
-        output_dir = os.path.dirname(output_path)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        self._write_file(output_path,output)
-        if self.verbose:
-            print output_path + '\t <- ' + os.path.join(self.tmpl_root,tmpl_file)
-
-    def _find_template(self,path):
-        tmp_path = path
-        #same position/ same filename
-        if os.path.exists(os.path.join(self.tmpl_root,tmp_path)):
-            return tmp_path
-        #same position/ same filename but different extension(if not .html)
-        if len(tmp_path) > 5 and tmp_path[-5:] != '.html':
-            tmp_path_arr = os.path.splitext(tmp_path)
-            tmp_path = tmp_path_arr[0] + '.html'
-            if os.path.exists(os.path.join(self.tmpl_root,tmp_path)):
-                return tmp_path
-        #joined  by underscore
-        tmp_path = os.path.splitext(path)[0]
-        exam_path = tmp_path.replace('/','_') + '.html'
-        if os.path.exists(os.path.join(self.tmpl_root,exam_path)):
-            return exam_path
-        #loop parent
+    def _find_template(self,output_path):
+        tmp_path,orig_ext = os.path.splitext(output_path)
+        exam_ext = [orig_ext]
+        if orig_ext != 'html':
+            exam_ext.append('.html')
         while True:
-            tmp_path, deleted = os.path.split(tmp_path)
-            if not deleted:
-                break
-            #same direcotry's '__base__.html'
+            tmp_path_parent, deleted = os.path.split(tmp_path)
             exam_paths = (
-                os.path.join(tmp_path,'__base__.html'),
-                tmp_path + '.html',
-                tmp_path.replace('/','_') + '.html'
+                tmp_path,
+                tmp_path.replace('/','_'),
+                os.path.join(tmp_path_parent,'__base__'),
             )
             for exam_path in exam_paths:
-                if os.path.exists(os.path.join(self.tmpl_root,exam_path)):
-                    return exam_path
-        return ''
+                for ext in exam_ext:
+                    path = exam_path + ext
+                    if os.path.exists(os.path.join(self.tmpl_root,path)):
+                        return path
+            if not deleted:
+                break
+            tmp_path = tmp_path_parent
+        raise TemplateNotFound(output_path)
 
     def _read_json(self,root,file_name):
         f  = open(os.path.join(root,file_name))
@@ -167,3 +177,11 @@ class Negi(object):
         f = codecs.open(path,'w','utf-8')
         f.write(content)
         f.close()
+
+
+class TemplateNotFound(Exception):
+    def __init__(self,path):
+        self.path = path
+
+    def __str__(self):
+        return 'Template file for "%s" not found' % self.path

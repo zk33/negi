@@ -5,6 +5,6 @@
 # command line tool:  main.py
 
 
-from .app import Negi
+from .app import Negi,TemplateNotFound
 
 
