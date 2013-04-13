@@ -83,9 +83,15 @@ Rule of finding template
 
 Templates automatically assigned based on output file path. 
 
+### Basic Rule
+
+1. search same directory/same name template file: `/foo/bar.html -> /foo/bar.html`
+1. search underscore-joined template: `/foo/bar.html -> foo\_bar.html`
+1. search `__base__.html' in same directory: '/foo/bar.html -> foo/__base__.html`
+1. up to parent directory and do same.
 
 
-### Output path: /index.html
+#### Example: Output path = /index.html
 
 Search template directory:
 ```
@@ -95,7 +101,7 @@ Search template directory:
 and use template found first.
 
 
-### Output path: /spam/egg/ham.php
+### Example: Output path = /spam/egg/ham.php
 
 Search template directory:
 ```
