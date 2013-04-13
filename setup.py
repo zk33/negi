@@ -15,7 +15,7 @@ setup(
     keywords="jinja2 JSON",
     url="https://github.com/zk33/negi",
     packages=find_packages(exclude=['ez_setup', 'tests', 'tests.*']),
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     install_requires=["aaargh","jinja2"],
     entry_points={'console_scripts': ["negi = negi.main:main"]},
     classifiers=[
