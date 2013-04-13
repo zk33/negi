@@ -88,18 +88,18 @@ class Negi(object):
             if '_pages' in base_params:
                 for page_name, page_params in base_params['_pages'].items():
                     #build params
-                    params = self.build_params(output_dir,page_name)
+                    params = self._build_params(output_dir,page_name)
 
                     #render
                     file_path = os.path.join(output_dir[1:], page_name + params['_ext'])
-                    output,template_path = self._render(output_dir,page_name)
+                    output,template_path = self._render(file_path,params)
 
                     #write file
                     self._save_page(file_path,output)
 
                     #output to console
                     if self.verbose:
-                        print file_path + '\t <- ' + os.path.join(self.tmpl_root,tmpl_file)
+                        print file_path + '\t <- ' + os.path.join(self.tmpl_root,template_path)
 
     def _render(self,file_path,params): 
         #find template
