@@ -87,7 +87,7 @@ Templates automatically assigned based on output file path.
 
 1. search same directory/same name template file: `/foo/bar.html -> /foo/bar.html`
 1. search underscore-joined template: `/foo/bar.html -> foo\_bar.html`
-1. search `__base__.html' in same directory: '/foo/bar.html -> foo/__base__.html`
+1. search `__base__.html` in same directory: '/foo/bar.html -> foo/__base__.html`
 1. up to parent directory and do same.
 
 
