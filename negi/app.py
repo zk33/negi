@@ -78,7 +78,7 @@ class Negi(object):
         #save params as self.params['path/to/directory/from/root']
         self.params[path] = base_params
 
-        #if pages[xxxx] has 'pages', call _process_params recursively
+        #if pages[xxxx] has '_contents', call _process_params recursively
         for k,v in pages.items():
             if '_contents' in v:
                 self._process_params( os.path.join(current_dir,k), [], v['_contents'])
@@ -168,10 +168,12 @@ class Negi(object):
         return json.load(f)
 
     def _read_file(self,root,file_name):
-        f = open(os.path.join(root,file_name))
+        path = os.path.join(root,file_name)
         if file_name.find('.json') is not -1:
+            f = open(path)
             return json.load(f)
         else:
+            f = codecs.open(path,'r','utf-8')
             return f.read()
     def _write_file(self,path,content):
         f = codecs.open(path,'w','utf-8')
