@@ -87,6 +87,8 @@ class Negi(object):
         for output_dir, base_params in self.params.items():
             if '_pages' in base_params:
                 for page_name, page_params in base_params['_pages'].items():
+                    if '_contents' in page_params:
+                        continue;
                     #build params
                     params = self._build_params(output_dir,page_name)
 
