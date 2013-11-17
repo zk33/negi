@@ -63,7 +63,7 @@ class Negi(object):
                 pages[name] = self._read_json(current_dir,file_name)
 
         #save param
-        path = current_dir.replace(self.data_root,'')
+        path = current_dir.replace(self.data_root,'',1)
         if not path:
             path = '/'
         else:
@@ -93,7 +93,7 @@ class Negi(object):
                     params = self._build_params(output_dir,page_name)
 
                     #render
-                    file_path = os.path.join(output_dir[1:], page_name + params['_ext'])
+                    file_path = os.path.join(output_dir[1:], page_name + '.' + params['_ext'])
                     output,template_path = self._render(file_path,params)
 
                     #write file
@@ -140,7 +140,7 @@ class Negi(object):
         #add utility params
         result_params['_rel_root'] = os.path.relpath('/',output_dir)
         if '_ext' not in result_params:
-            result_params['_ext'] = '.html'
+            result_params['_ext'] = 'html'
         return result_params
 
     def _find_template(self,output_path):
@@ -166,14 +166,13 @@ class Negi(object):
         raise TemplateNotFound(output_path)
 
     def _read_json(self,root,file_name):
-        f  = open(os.path.join(root,file_name))
-        return json.load(f)
+        path = os.path.join(root,file_name)
+        return self._load_json(path)
 
     def _read_file(self,root,file_name):
         path = os.path.join(root,file_name)
         if file_name.find('.json') is not -1:
-            f = open(path)
-            return json.load(f)
+            return self._load_json(path)
         else:
             f = codecs.open(path,'r','utf-8')
             return f.read()
@@ -181,6 +180,15 @@ class Negi(object):
         f = codecs.open(path,'w','utf-8')
         f.write(content)
         f.close()
+    def _load_json(self,path):
+        f = open(path)
+        try:
+            return json.load(f)
+        except Exception as e:
+            print "JSON file error: " + path
+            print "error type: " + str(type(e))
+            print "message: " + e.message
+            exit()
 
 
 class TemplateNotFound(Exception):
